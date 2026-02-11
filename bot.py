@@ -1,40 +1,81 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+import logging
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+)
 
-# ===== CONFIG =====
-BOT_TOKEN = "7902701230:AAGNqc8Y2BJwfF2ETvJ9XubY35TLJU330xE"   # NEVER SHARE THIS
+TOKEN = "7902701230:AAGNqc8Y2BJwfF2ETvJ9XubY35TLJU330xE"
 ADMIN_ID = 8189956093
-UPI_ID = "abhijeet999@fam"
 
-# ===== PRODUCTS =====
+logging.basicConfig(level=logging.INFO)
+
 PRODUCTS = {
-    "hg": {
-        "name": "HG-CHEATS NON ROOT (7 Days)",
-        "price": 350
-    },
-    "drip": {
-        "name": "DRIP CLIENT MOD APK (NON ROOT)",
-        "price": 340
-    },
-    "prime": {
-        "name": "PRIME HOOK (NON ROOT)",
-        "price": 200
-    }
+    "hg": ("HG-CHEATS NON ROOT 7 DAYS", 350),
+    "drip": ("DRIP CLIENT MOD APK NON ROOT", 340),
+    "prime": ("PRIME HOOK NON-ROOT", 200),
 }
 
-pending_orders = {}
 
-# ===== START =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    buttons = [
-        [InlineKeyboardButton("HG-CHEATS ₹350", callback_data="buy_hg")],
-        [InlineKeyboardButton("DRIP CLIENT ₹340", callback_data="buy_drip")],
-        [InlineKeyboardButton("PRIME HOOK ₹200", callback_data="buy_prime")]
+    keyboard = [
+        [InlineKeyboardButton(f"{name} - ₹{price}", callback_data=key)]
+        for key, (name, price) in PRODUCTS.items()
     ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Select product:", reply_markup=reply_markup)
 
-    await update.message.reply_text(
-        "🔥 *WELCOME TO KEY STORE* 🔥\n\nSelect a product 👇",
-        reply_markup=InlineKeyboardMarkup(buttons),
+
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    product_key = query.data
+    name, price = PRODUCTS[product_key]
+
+    await query.message.reply_text(
+        f"You selected:\n{name}\nPrice: ₹{price}\n\nScan QR and send payment screenshot."
+    )
+
+    await query.message.reply_photo(photo=open("qr.png", "rb"))
+
+
+async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.message.from_user
+
+    await context.bot.send_message(
+        chat_id=ADMIN_ID,
+        text=f"Payment screenshot received from {user.first_name} ({user.id})",
+    )
+
+    await context.bot.forward_message(
+        chat_id=ADMIN_ID,
+        from_chat_id=update.message.chat_id,
+        message_id=update.message.message_id,
+    )
+
+    await update.message.reply_text("Payment received. Waiting for admin approval.")
+
+
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button))
+    app.add_handler(CommandHandler("help", start))
+    app.add_handler(
+        telegram.ext.MessageHandler(
+            telegram.ext.filters.PHOTO, photo_handler
+        )
+    )
+
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()        reply_markup=InlineKeyboardMarkup(buttons),
         parse_mode="Markdown"
     )
 
