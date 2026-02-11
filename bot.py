@@ -10,7 +10,7 @@ from telegram.ext import (
 )
 
 TOKEN = "7902701230:AAGNqc8Y2BJwfF2ETvJ9XubY35TLJU330xE"
-ADMIN_ID = 8189956093  # change if needed
+ADMIN_ID = 8189956093
 
 logging.basicConfig(level=logging.INFO)
 
@@ -27,7 +27,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for key, (name, price) in PRODUCTS.items()
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Select product:", reply_markup=reply_markup)
+
+    await update.effective_message.reply_text(
+        "Select product:",
+        reply_markup=reply_markup
+    )
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -46,7 +50,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.message.from_user
+    user = update.effective_user
 
     await context.bot.send_message(
         chat_id=ADMIN_ID,
@@ -55,7 +59,7 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.forward_message(
         chat_id=ADMIN_ID,
-        from_chat_id=update.message.chat_id,
+        from_chat_id=update.effective_chat.id,
         message_id=update.message.message_id,
     )
 
